@@ -68,29 +68,3 @@ def select_fluent_trigger(all_candidates, GPT2_model, GPT2_tokenizer, acc_range=
     else:
         print('no trigger below threshold.')
         return
-
-# def select_fluent_trigger(all_candidates, GPT2_model, GPT2_tokenizer, top_ratio=0.1):
-#     if len(all_candidates) > 0:
-#         triggers_acc_sort = sorted(all_candidates, key=lambda x: x[1])
-#         trigger_list, acc_list, gpt_list = [], [], []
-#         num_tmp = 0
-#         #acc_bound = 1
-#         for trigger in triggers_acc_sort:
-#             gpt_loss = GPT2_LM_loss(GPT2_model, GPT2_tokenizer, trigger[0])
-#             print(trigger[0], trigger[1], gpt_loss)
-#             trigger_list.append(trigger[0])
-#             acc_list.append(trigger[1])
-#             gpt_list.append(gpt_loss)
-
-#             num_tmp += 1
-
-#             if num_tmp >= top_ratio*len(all_candidates):
-#                 break
-#         trigger_list, acc_list, gpt_list = np.array(trigger_list), np.array(acc_list), np.array(gpt_list)
-#         overall_perform = acc_list+gpt_list/20
-#         best_index = np.argmin(overall_perform)
-#         print('=== best trigger is " ', trigger_list[best_index], ' " with model accuracy ', acc_list[best_index])
-#         return
-#     else:
-#         print('no trigger below threshold.')
-#         return
