@@ -1,9 +1,6 @@
-import sys
 import os
 import torch
 from transformers import *
-import torch.optim as optim
-from sentiment_word_classifier import LstmClassifier
 import numpy as np
 import random
 import argparse
@@ -19,7 +16,6 @@ from allennlp.modules.token_embedders import Embedding
 from utils import get_embedding_weight, get_accuracy
 from allennlp.nn.util import get_text_field_mask, move_to_device
 from allennlp.training.metrics import CategoricalAccuracy
-from allennlp.training.trainer import Trainer
 from allennlp.common.util import lazy_groups_of
 from allennlp.data.token_indexers import SingleIdTokenIndexer
 from ARAE_models import Seq2Seq, MLP_D, MLP_G, generate
@@ -28,6 +24,54 @@ from torch.autograd.gradcheck import zero_gradients
 import torch.nn.functional as F
 from attack_util import project_noise, one_hot_prob, GPT2_LM_loss, select_fluent_trigger
 
+class LstmClassifier(Model):
+    def __init__(self, word_embeddings, encoder, vocab):
+        super().__init__(vocab)
+        self.word_embeddings = word_embeddings
+        self.encoder = encoder
+        self.linear = torch.nn.Linear(in_features=encoder.get_output_dim(),
+                                      out_features=vocab.get_vocab_size('labels'))
+        self.accuracy = CategoricalAccuracy()
+        self.loss_function = torch.nn.CrossEntropyLoss()
+
+    def forward(self, tokens, label):
+        mask = get_text_field_mask(tokens)
+        embeddings = self.word_embeddings(tokens)
+        encoder_out = self.encoder(embeddings, mask)
+        logits = self.linear(encoder_out)
+        output = {"logits": logits}
+        if label is not None:
+            self.accuracy(logits, label)
+            output["loss"] = self.loss_function(logits, label)
+        return output
+
+    def forward_with_trigger(self, tri_emb, tokens, label):
+        # calculate the loss with trigger append to the sentences
+        trigger_len = tri_emb.size(1)
+        tirgger_sz = tri_emb.size(0)
+        if tokens is not None:
+            mask = get_text_field_mask(tokens)
+            mask = torch.cat((torch.ones(mask.size(0), trigger_len, dtype=mask.dtype, device=mask.device), mask), dim=1)
+            # get embeddings of original sentence
+            embeddings = self.word_embeddings(tokens)
+            # add trigger to the sentence here
+            out_emb = tri_emb.repeat(int(np.ceil(embeddings.size(0) / tirgger_sz)), 1, 1)
+            embeddings = torch.cat((out_emb[:embeddings.size(0), :, :], embeddings), dim=1)
+        else:
+            mask = torch.ones(tirgger_sz, trigger_len, device=tri_emb.device)
+            embeddings = tri_emb
+
+        encoder_out = self.encoder(embeddings, mask)
+        logits = self.linear(encoder_out)
+        output = {"logits": logits}
+        if label is not None:
+            self.accuracy(logits, label)
+            output["loss"] = self.loss_function(logits, label)
+        return output
+
+
+    def get_metrics(self, reset=False):
+        return {'accuracy': self.accuracy.get_metric(reset)}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
