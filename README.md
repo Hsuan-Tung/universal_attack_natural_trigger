@@ -1,5 +1,5 @@
 # universal_attack_natural_trigger  
-Universal Adversarial Attacks with Natural Triggers for Text Classification
+Universal Adversarial Attacks with Natural Triggers for Text Classification https://arxiv.org/abs/2005.00174  
 
 ## Dependencies  
 Pytorch, AllenNLP, Hugging Face Transformers (see requirements.txt).
