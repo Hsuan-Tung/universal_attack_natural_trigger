@@ -1,4 +1,4 @@
-# About  
+## About  
 This code accompanies the paper "Universal Adversarial Attacks with Natural Triggers for Text Classification" https://arxiv.org/abs/2005.00174, accepted by NAACL 2021.  
 
 ## Dependencies  
